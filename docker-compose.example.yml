@@ -10,7 +10,7 @@ services:
     volumes:
       # Mount a directory to store the downloaded documents
       - ./data:/data
-      
+
       # Replace arguments in the below command with your own values
     command: >
       your-ssn-here
@@ -18,4 +18,3 @@ services:
       --ntfy-topic your-private-topic
       --storage-provider=filesystem
       --base-dir=/data
-
