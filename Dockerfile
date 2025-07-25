@@ -10,6 +10,8 @@ RUN apt-get update && \
 
 # Copy the necessary files
 COPY kivra_sync.py /app/
+COPY __version__.py /app/
+COPY VERSION /app/
 COPY kivra/ /app/kivra/
 COPY storage/ /app/storage/
 COPY utils/ /app/utils/

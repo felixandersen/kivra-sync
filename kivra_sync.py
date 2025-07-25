@@ -7,6 +7,7 @@ import logging
 import argparse
 import base64
 
+from __version__ import __version__
 from kivra.auth import KivraAuth
 from kivra.api import KivraApiClient
 from kivra.receipts import ReceiptFetcher
@@ -77,7 +78,11 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
     
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Fetch receipts and letters from Kivra.')
+    parser = argparse.ArgumentParser(
+        description=f'Fetch receipts and letters from Kivra. (version {__version__})',
+        prog='kivra-sync'
+    )
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     parser.add_argument('ssn', help='Personal identity number (YYYYMMDDXXXX)')
     
     # Storage provider selection
