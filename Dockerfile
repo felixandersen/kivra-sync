@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Install dependencies
 RUN apt-get update && \
-  apt-get install -y weasyprint && \
+  apt-get install -y --no-install-recommends ca-certificates weasyprint && \
+  apt-get clean && rm -rf /var/lib/apt/lists/* && \
   pip install --no-cache-dir requests qrcode pillow weasyprint
 
 # Copy the necessary files
