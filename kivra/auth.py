@@ -7,7 +7,6 @@ import base64
 import secrets
 import time
 import qrcode
-from PIL import Image
 import os
 import logging
 import json
