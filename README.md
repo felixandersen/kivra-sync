@@ -43,7 +43,7 @@ python kivra_sync.py YYYYMMDDXXXX
 ```bash
 # Edit docker-compose.example.yml to set your configuration
 # Then run:
-docker-compose -f docker-compose.example.yml up
+docker compose -f docker-compose.example.yml up
 ```
 
 Note: this will not work with the default `local` interaction provider since there is currently no way for the provider to show the QR code required for login.
