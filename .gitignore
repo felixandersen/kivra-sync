@@ -2,3 +2,4 @@ temp
 .DS_store
 */__pycache__
 venv
+node_modules
