@@ -32,7 +32,7 @@ This will:
 apt-get install weasyprint
 
 # Install Python dependencies
-pip install requests qrcode pillow weasyprint
+pip install -r requirements.txt
 
 # Run the script
 python kivra_sync.py YYYYMMDDXXXX

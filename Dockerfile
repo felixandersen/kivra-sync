@@ -5,8 +5,10 @@ WORKDIR /app
 # Install dependencies
 RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates weasyprint && \
-  apt-get clean && rm -rf /var/lib/apt/lists/* && \
-  pip install --no-cache-dir requests qrcode pillow weasyprint
+  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the necessary files
 COPY kivra_sync.py /app/

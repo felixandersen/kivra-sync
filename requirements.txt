@@ -1,0 +1,4 @@
+Pillow==11.3.0
+qrcode==8.2
+Requests==2.32.4
+weasyprint==66.0
