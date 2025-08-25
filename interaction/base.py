@@ -54,3 +54,11 @@ class InteractionProvider(ABC):
                 - letters_stored (int): Number of letters stored (didn't already exist)
         """
         pass
+    
+    @abstractmethod
+    def report_authentication_success(self):
+        """
+        Report that BankID authentication was successful and data sync is starting.
+        This is called after QR code scanning succeeds but before data fetching begins.
+        """
+        pass

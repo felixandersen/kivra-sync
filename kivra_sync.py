@@ -15,6 +15,7 @@ from kivra.letters import LetterFetcher
 from storage.filesystem import FileSystemStoreProvider
 from interaction.local import LocalInteractionProvider
 from interaction.ntfy import NtfyInteractionProvider
+from interaction.web import WebInteractionProvider
 
 def fetch_documents(args, interaction_provider, document_store, temp_dir):
     """
@@ -91,7 +92,7 @@ def main():
     parser.add_argument('--base-dir', help='Base directory for storing documents (default: script directory)')
     
     # Interaction provider selection
-    parser.add_argument('--interaction-provider', choices=['local', 'ntfy'], default='local',
+    parser.add_argument('--interaction-provider', choices=['local', 'ntfy', 'web'], default='local',
                         help='Interaction provider to use (default: local)')
     
     # ntfy provider options
@@ -101,6 +102,12 @@ def main():
     parser.add_argument('--ntfy-pass', help='ntfy password for authentication')
     parser.add_argument('--trigger-message', default='run now', 
                         help='Message that triggers the script when using a listening interaction provider (default: "run now")')
+    
+    # Web provider options
+    parser.add_argument('--web-port', type=int, default=8080, 
+                        help='Port for web interface (default: 8080)')
+    parser.add_argument('--web-host', default='0.0.0.0',
+                        help='Host for web interface (default: 0.0.0.0)')
     
     # Paperless provider options
     parser.add_argument('--paperless-url', help='Paperless API URL (e.g., http://localhost:8000/api)')
@@ -117,12 +124,6 @@ def main():
     parser.add_argument('--max-letters', type=int, default=0, help='Maximum number of letters to fetch (default: 0, 0 for unlimited)')
     
     args = parser.parse_args()
-    
-    # Configuration
-    FETCH_RECEIPTS = args.fetch_receipts
-    FETCH_LETTERS = args.fetch_letters
-    MAX_RECEIPTS = None if args.max_receipts == 0 else args.max_receipts
-    MAX_LETTERS = None if args.max_letters == 0 else args.max_letters
     
     # Create temp directory for QR codes and other temporary files
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -168,12 +169,17 @@ def main():
             headers=ntfy_headers,
             trigger_message=args.trigger_message
         )
+    elif args.interaction_provider == 'web':
+        interaction_provider = WebInteractionProvider(
+            port=args.web_port,
+            host=args.web_host
+        )
     
     # Check if the provider can listen
     if interaction_provider.can_listen:
         # Start listening
         print(f"Listening for triggers via {args.interaction_provider}...")
-        interaction_provider.listen(lambda: fetch_documents(args, interaction_provider, document_store, temp_dir))
+        interaction_provider.listen(lambda: fetch_documents(args, interaction_provider, document_store, temp_dir), temp_dir=temp_dir)
     else:
         # Execute immediately
         exit_code = fetch_documents(args, interaction_provider, document_store, temp_dir)

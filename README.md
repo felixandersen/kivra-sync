@@ -25,7 +25,17 @@ This will:
 2. Fetch receipts and letters
 3. Store them in the filesystem
 
-### Option 1: Using Python
+### Option 1: Using Docker (recommended)
+
+```bash
+# Edit docker-compose.example.yml to set your configuration
+# Then run:
+docker compose build && docker compose up
+```
+
+Note: this will not work with the default `local` interaction provider since there is currently no way for the provider to show the QR code required for login. The above is configured to launch with the `web` interaction provider.
+
+### Option 2: Using Python
 
 ```bash
 # Install system dependencies (Debian/Ubuntu)
@@ -37,16 +47,6 @@ pip install -r requirements.txt
 # Run the script
 python kivra_sync.py YYYYMMDDXXXX
 ```
-
-### Option 2: Using Docker
-
-```bash
-# Edit docker-compose.example.yml to set your configuration
-# Then run:
-docker compose -f docker-compose.example.yml up
-```
-
-Note: this will not work with the default `local` interaction provider since there is currently no way for the provider to show the QR code required for login.
 
 ## Advanced Configuration
 
@@ -97,6 +97,16 @@ To trigger the script in listening mode, send the trigger message to the ntfy to
 curl -d "run now" ntfy.sh/your-topic
 ```
 
+#### Web Interaction
+
+Provides a web interface for triggering syncs and viewing results:
+
+```bash
+python kivra_sync.py YYYYMMDDXXXX --interaction-provider web --web-port 8080
+```
+
+Then navigate to `http://localhost:8080` in your browser to access the interface. Perfect for containerized deployments where GUI access is not available.
+
 ### Fetch Options
 
 Customize which documents to fetch and how many:
@@ -139,11 +149,13 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 ### Interaction Options
 | Option | Description |
 |--------|-------------|
-| `--interaction-provider {local,ntfy}` | Interaction provider to use (default: local) |
+| `--interaction-provider {local,ntfy,web}` | Interaction provider to use (default: local) |
 | `--ntfy-topic TOPIC` | ntfy topic to send notifications to (required for ntfy) |
 | `--ntfy-server URL` | ntfy server URL (default: https://ntfy.sh) |
 | `--ntfy-user USER` | ntfy username for authentication |
 | `--ntfy-pass PASS` | ntfy password for authentication |
+| `--web-port PORT` | Port for web interface (default: 8080) |
+| `--web-host HOST` | Host for web interface (default: 0.0.0.0) |
 | `--trigger-message MSG` | Message that triggers the script (default: "run now") |
 
 ### Document Fetch Options

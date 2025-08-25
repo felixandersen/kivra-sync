@@ -172,3 +172,34 @@ class NtfyInteractionProvider(InteractionProvider):
         print("\nAll done!")
         print(f"Receipts: {stats['receipts_fetched']} of {stats['receipts_total']} fetched, {stats.get('receipts_stored', 0)} stored")
         print(f"Letters: {stats['letters_fetched']} of {stats['letters_total']} fetched, {stats.get('letters_stored', 0)} stored")
+    
+    def report_authentication_success(self):
+        """
+        Report that BankID authentication was successful and data sync is starting.
+        """
+        message = "BankID authentication successful! Starting data sync..."
+        
+        headers = {
+            "Title": "Kivra authentication successful",
+            "Priority": "default",
+            **self.ntfy_headers
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.ntfy_server}/{self.ntfy_topic}",
+                data=message,
+                headers=headers
+            )
+            
+            if response.status_code != 200:
+                logging.error(f"Failed to send authentication success via ntfy: {response.status_code}, {response.text}")
+                print("Failed to send authentication success via ntfy.")
+            else:
+                print("Authentication success sent via ntfy.")
+        except Exception as e:
+            logging.error(f"Error sending authentication success via ntfy: {str(e)}")
+            print("Error sending authentication success via ntfy.")
+        
+        # Also print to console
+        print("BankID authentication successful! Starting data sync...")

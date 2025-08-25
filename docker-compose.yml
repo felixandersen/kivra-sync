@@ -1,20 +1,17 @@
-version: '3'
-
 services:
-  sync-kivra:
+  kivra-sync:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sync-kivra
     restart: unless-stopped
     volumes:
       # Mount a directory to store the downloaded documents
       - ./data:/data
-
+    ports:
+      - "8080:8080"
       # Replace arguments in the below command with your own values
     command: >
-      your-ssn-here
-      --interaction-provider ntfy
-      --ntfy-topic your-private-topic
+      your-national-identification-number-here
+      --interaction-provider=web
       --storage-provider=filesystem
       --base-dir=/data
