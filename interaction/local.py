@@ -35,3 +35,9 @@ class LocalInteractionProvider(InteractionProvider):
         letters_count = stats['letters_total'] if stats['letters_fetched'] == stats['letters_total'] else f"{stats['letters_fetched']} of {stats['letters_total']}"
         print(f"Receipts: {stats.get('receipts_stored', 0)} new items, {receipts_count} fetched")
         print(f"Letters: {stats.get('letters_stored', 0)} new items, {letters_count} fetched")
+    
+    def report_authentication_success(self):
+        """
+        Report that BankID authentication was successful and data sync is starting.
+        """
+        print("BankID authentication successful! Starting data sync...")

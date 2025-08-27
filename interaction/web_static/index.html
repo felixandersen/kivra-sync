@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kivra Sync</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kivra Sync</h1>
+            <p class="subtitle">Sync your documents for archiving</p>
+        </header>
+        
+        <main>
+            <div class="status-section">
+                <div id="status" class="status idle">
+                    <span id="status-text">Ready to sync</span>
+                </div>
+            </div>
+            
+            <div class="action-section">
+                <button id="runButton" class="run-button">
+                    Run sync now<br>(be ready with BankID app)
+                </button>
+            </div>
+            
+            <div id="qrContainer" class="qr-container" style="display: none;">
+                <h3>Scan QR code with BankID</h3>
+                <div class="qr-wrapper">
+                    <img id="qrImage" alt="QR Code for BankID authentication" />
+                </div>
+                <p class="qr-instructions">
+                    Open your BankID app and scan the QR code above to authenticate.
+                </p>
+            </div>
+            
+            <div id="spinner" class="spinner" style="display: none;">
+                <div class="spinner-circle"></div>
+                <p>Processing...</p>
+            </div>
+            
+            <div id="results" class="results"></div>
+        </main>
+        
+        <footer>
+            <p class="footer-text">
+                Kivra Sync - document synchronization tool
+            </p>
+        </footer>
+    </div>
+    
+    <script src="/static/script.js"></script>
+</body>
+</html>

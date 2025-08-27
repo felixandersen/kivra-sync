@@ -25,6 +25,8 @@ RUN chmod +x /app/kivra_sync.py
 # Create directories
 RUN mkdir -p /app/temp /data
 
+ENV PYTHONUNBUFFERED=1
+
 # Set entrypoint
 ENTRYPOINT ["python", "kivra_sync.py"]
 

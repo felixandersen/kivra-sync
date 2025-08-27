@@ -156,6 +156,9 @@ class KivraAuth:
             if poll_data.get('status') == 'complete':
                 print("\nBankID authentication successful!")
                 
+                # Notify interaction provider that authentication succeeded
+                self.interaction_provider.report_authentication_success()
+                
                 # Exchange authorization code for tokens
                 token_url = "https://app.api.kivra.com/v2/oauth2/token"
                 token_data = {

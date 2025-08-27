@@ -3,3 +3,5 @@ temp
 */__pycache__
 venv
 node_modules
+data
+__pycache__
