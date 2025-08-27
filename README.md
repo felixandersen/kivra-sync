@@ -29,6 +29,7 @@ This will:
 
 ```bash
 # Edit docker-compose.example.yml to set your configuration
+# especially "your-national-identification-number-here"
 # Then run:
 docker compose build && docker compose up
 ```
