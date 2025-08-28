@@ -16,7 +16,7 @@ Use it responsibly and at your own discretion.
 
 - **Authentication**: Fetches and displays a QR code for authentication via BankID.
 - **Flexible Storage**: Store documents locally on your filesystem or integrate with Paperless-ngx for advanced document management
-- **Multiple Interaction Modes**: Run interactively in your terminal or set up a "headless" mode that listens for triggers and sends QR codes via ntfy.sh
+- **Multiple Interaction Modes**: Run interactively in your terminal or set up a "headless" mode that listens for triggers and sends QR codes via a web page or ntfy.sh
 
 ## Quick Start
 
@@ -84,6 +84,16 @@ Displays QR codes locally and reports to the console:
 python kivra_sync.py YYYYMMDDXXXX --interaction-provider local
 ```
 
+#### Web Interaction
+
+Provides a web interface for triggering syncs and viewing results:
+
+```bash
+python kivra_sync.py YYYYMMDDXXXX --interaction-provider web --web-port 8080
+```
+
+Then navigate to `http://localhost:8080` in your browser to access the interface. Perfect for containerized deployments where GUI access is not available.
+
 #### ntfy Interaction
 
 Sends QR codes and reports via ntfy.sh, with optional listening mode:
@@ -97,16 +107,6 @@ To trigger the script in listening mode, send the trigger message to the ntfy to
 ```bash
 curl -d "run now" ntfy.sh/your-topic
 ```
-
-#### Web Interaction
-
-Provides a web interface for triggering syncs and viewing results:
-
-```bash
-python kivra_sync.py YYYYMMDDXXXX --interaction-provider web --web-port 8080
-```
-
-Then navigate to `http://localhost:8080` in your browser to access the interface. Perfect for containerized deployments where GUI access is not available.
 
 ### Fetch Options
 
