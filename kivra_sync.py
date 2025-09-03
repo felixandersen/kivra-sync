@@ -6,6 +6,7 @@ import os
 import logging
 import argparse
 import base64
+import tempfile
 
 from __version__ import __version__
 from kivra.auth import KivraAuth
@@ -126,14 +127,25 @@ def main():
     args = parser.parse_args()
     
     # Create temp directory for QR codes and other temporary files
+    # Prefer env overrides and OS temp; avoid writing into read-only installs
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    temp_dir = os.path.join(script_dir, "temp")
+    temp_base = (
+        os.environ.get("KIVRA_SYNC_TEMP_DIR")
+        or os.environ.get("XDG_RUNTIME_DIR")
+        or tempfile.gettempdir()
+    )
+    temp_dir = os.path.join(temp_base, "kivra-sync")
     os.makedirs(temp_dir, exist_ok=True)
     
     # Initialize the document storage provider
     if args.storage_provider == 'filesystem':
-        # Use base_dir if provided, otherwise use script_dir
-        base_dir = args.base_dir if args.base_dir else script_dir
+        # Use base_dir if provided, otherwise use env or current directory
+        base_dir = (
+            args.base_dir
+            if args.base_dir
+            else os.environ.get("KIVRA_SYNC_BASE_DIR")
+            or os.getcwd()
+        )
         document_store = FileSystemStoreProvider(os.path.join(base_dir, args.ssn), dry_run=args.dry_run)
     elif args.storage_provider == 'paperless':
         # Check if required paperless options are provided

@@ -49,13 +49,37 @@ pip install -r requirements.txt
 python kivra_sync.py YYYYMMDDXXXX
 ```
 
+### Option 3: Using Nix (flake)
+
+If you have Nix with flakes enabled:
+
+```bash
+# Run (uses the flake-provided environment)
+nix run . -- --help
+
+# Typical run, storing under ./data/<ssn>/
+nix run . -- YYYYMMDDXXXX --base-dir ./data
+
+# Run with the web interaction provider
+nix run . -- YYYYMMDDXXXX --interaction-provider web --web-port 8080
+
+# Dev shell with Python + deps + system libs
+nix develop
+
+```
+
+Notes:
+- The flake bundles WeasyPrint and its system libraries.
+- Temp files are written to a writable location; see “Paths and Environment Variables”.
+- You can override the base directory with `--base-dir` or `KIVRA_SYNC_BASE_DIR`.
+
 ## Advanced Configuration
 
 ### Storage Providers
 
 #### Filesystem Storage (Default)
 
-Documents are stored in the local filesystem:
+Documents are stored in the local filesystem. By default, the base directory is the current working directory (can be overridden with `--base-dir` or `KIVRA_SYNC_BASE_DIR`):
 
 ```bash
 python kivra_sync.py YYYYMMDDXXXX --storage-provider filesystem --base-dir /path/to/store
@@ -138,7 +162,7 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 | Option | Description |
 |--------|-------------|
 | `--storage-provider {filesystem,paperless}` | Storage provider to use (default: filesystem) |
-| `--base-dir DIR` | Base directory for storing documents (default: script directory) |
+| `--base-dir DIR` | Base directory for storing documents (default: current working directory) |
 
 ### Paperless-specific Options
 | Option | Description |
@@ -166,6 +190,15 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 | `--fetch-letters` / `--no-fetch-letters` | Enable/disable letter fetching (default: enabled) |
 | `--max-receipts N` | Maximum number of receipts to fetch (0 for unlimited) |
 | `--max-letters N` | Maximum number of letters to fetch (0 for unlimited) |
+
+### Paths and Environment Variables
+| Variable | Description |
+|----------|-------------|
+| `KIVRA_SYNC_BASE_DIR` | Default base directory when using the filesystem storage provider. Equivalent to `--base-dir`. |
+| `KIVRA_SYNC_TEMP_DIR` | Directory for temporary files (e.g., QR codes). If not set, falls back to `XDG_RUNTIME_DIR` or the OS temp directory. |
+
+Notes:
+- When running from read-only installations (e.g., Nix), the application uses a writable temp directory (as above) and defaults the filesystem base directory to the current working directory unless `--base-dir`/`KIVRA_SYNC_BASE_DIR` is provided.
 
 ## Project Structure
 
