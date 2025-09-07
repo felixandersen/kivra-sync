@@ -191,15 +191,6 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 | `--max-receipts N` | Maximum number of receipts to fetch (0 for unlimited) |
 | `--max-letters N` | Maximum number of letters to fetch (0 for unlimited) |
 
-### Paths and Environment Variables
-| Variable | Description |
-|----------|-------------|
-| `KIVRA_SYNC_BASE_DIR` | Default base directory when using the filesystem storage provider. Equivalent to `--base-dir`. |
-| `KIVRA_SYNC_TEMP_DIR` | Directory for temporary files (e.g., QR codes). If not set, falls back to `XDG_RUNTIME_DIR` or the OS temp directory. |
-
-Notes:
-- When running from read-only installations (e.g., Nix), the application uses a writable temp directory (as above) and defaults the filesystem base directory to the current working directory unless `--base-dir`/`KIVRA_SYNC_BASE_DIR` is provided.
-
 ## Project Structure
 
 The code is organized into logical modules:

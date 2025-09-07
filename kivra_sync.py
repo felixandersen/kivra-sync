@@ -130,8 +130,7 @@ def main():
     # Prefer env overrides and OS temp; avoid writing into read-only installs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     temp_base = (
-        os.environ.get("KIVRA_SYNC_TEMP_DIR")
-        or os.environ.get("XDG_RUNTIME_DIR")
+        os.environ.get("XDG_RUNTIME_DIR")
         or tempfile.gettempdir()
     )
     temp_dir = os.path.join(temp_base, "kivra-sync")
@@ -143,8 +142,7 @@ def main():
         base_dir = (
             args.base_dir
             if args.base_dir
-            else os.environ.get("KIVRA_SYNC_BASE_DIR")
-            or os.getcwd()
+            else os.getcwd()
         )
         document_store = FileSystemStoreProvider(os.path.join(base_dir, args.ssn), dry_run=args.dry_run)
     elif args.storage_provider == 'paperless':
