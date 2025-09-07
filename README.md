@@ -63,15 +63,13 @@ nix run . -- YYYYMMDDXXXX --base-dir ./data
 # Run with the web interaction provider
 nix run . -- YYYYMMDDXXXX --interaction-provider web --web-port 8080
 
+# Build and run help on resulting executable
+nix build && result/bin/kivra-sync --help 
+
 # Dev shell with Python + deps + system libs
 nix develop
 
 ```
-
-Notes:
-- The flake bundles WeasyPrint and its system libraries.
-- Temp files are written to a writable location; see “Paths and Environment Variables”.
-- You can override the base directory with `--base-dir` or `KIVRA_SYNC_BASE_DIR`.
 
 ## Advanced Configuration
 
