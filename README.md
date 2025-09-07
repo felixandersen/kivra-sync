@@ -77,7 +77,7 @@ nix develop
 
 #### Filesystem Storage (Default)
 
-Documents are stored in the local filesystem. By default, the base directory is the current working directory (can be overridden with `--base-dir` or `KIVRA_SYNC_BASE_DIR`):
+Documents are stored in the local filesystem. 
 
 ```bash
 python kivra_sync.py YYYYMMDDXXXX --storage-provider filesystem --base-dir /path/to/store
