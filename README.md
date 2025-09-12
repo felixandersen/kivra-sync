@@ -49,13 +49,35 @@ pip install -r requirements.txt
 python kivra_sync.py YYYYMMDDXXXX
 ```
 
+### Option 3: Using Nix (flake)
+
+If you have Nix with flakes enabled:
+
+```bash
+# Run (uses the flake-provided environment)
+nix run . -- --help
+
+# Typical run, storing under ./data/<ssn>/
+nix run . -- YYYYMMDDXXXX --base-dir ./data
+
+# Run with the web interaction provider
+nix run . -- YYYYMMDDXXXX --interaction-provider web --web-port 8080
+
+# Build and run help on resulting executable
+nix build && result/bin/kivra-sync --help 
+
+# Dev shell with Python + deps + system libs
+nix develop
+
+```
+
 ## Advanced Configuration
 
 ### Storage Providers
 
 #### Filesystem Storage (Default)
 
-Documents are stored in the local filesystem:
+Documents are stored in the local filesystem. 
 
 ```bash
 python kivra_sync.py YYYYMMDDXXXX --storage-provider filesystem --base-dir /path/to/store
@@ -138,7 +160,7 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 | Option | Description |
 |--------|-------------|
 | `--storage-provider {filesystem,paperless}` | Storage provider to use (default: filesystem) |
-| `--base-dir DIR` | Base directory for storing documents (default: script directory) |
+| `--base-dir DIR` | Base directory for storing documents (default: current working directory) |
 
 ### Paperless-specific Options
 | Option | Description |
