@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/felixandersen/kivra-sync/compare/v1.1.0...v1.1.1) (2025-10-27)
+
+
+### Bug Fixes
+
+* GraphQL attribute experimentalContents renamed to contents ([21c25a8](https://github.com/felixandersen/kivra-sync/commit/21c25a85715f659d164b9bca0286dcb9ead5ed1c))
+
 # [1.1.0](https://github.com/felixandersen/kivra-sync/compare/v1.0.0...v1.1.0) (2025-09-12)
 
 
