@@ -46,7 +46,7 @@ class LetterFetcher:
                 
                 data = self.api_client.graphql_query("ContentList", LETTERS_QUERY, variables)
                 
-                page_content = data.get('data', {}).get('experimentalContents', {})
+                page_content = data.get('data', {}).get('contents', {})
                 page_letters = page_content.get('list', [])
                 all_letters.extend(page_letters)
                 

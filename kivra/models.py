@@ -265,7 +265,7 @@ fragment productFields on ProductListItem {
 # GraphQL query for fetching letters
 LETTERS_QUERY = """
 query ContentList($filter: ContentListFilter!, $senderKey: String, $take: Int!, $after: ID) {
-  experimentalContents(
+  contents(
     filter: $filter
     senderKey: $senderKey
     take: $take
