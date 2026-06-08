@@ -31,7 +31,11 @@ class WebInteractionProvider(InteractionProvider):
         self.static_dir = os.path.join(os.path.dirname(__file__), 'web_static')
         self.temp_dir = None
         self.qr_path = None
-        
+        # Animated BankID QR support: each refresh gets a unique URL so the
+        # browser actually reloads the image instead of using a cached frame.
+        self.qr_seq = 0
+        self.supports_qr_refresh = True
+
     @property
     def can_listen(self):
         """
@@ -79,12 +83,14 @@ class WebInteractionProvider(InteractionProvider):
                 web_qr_path = os.path.join(self.temp_dir, 'qr.png')
                 shutil.copy2(qr_image_path, web_qr_path)
                 self.qr_path = web_qr_path
-                
-                # Send SSE update
+
+                # Send SSE update with a cache-busting URL so each refreshed
+                # animated QR frame is reloaded by the browser.
+                self.qr_seq += 1
                 self._send_sse_message({
                     "status": "qr_ready",
                     "message": "Please scan the QR code with BankID",
-                    "qr_url": "/qr.png"
+                    "qr_url": f"/qr.png?v={self.qr_seq}"
                 })
                 
                 print(f"QR code available at web interface and saved as: {qr_image_path}")

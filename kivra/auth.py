@@ -57,36 +57,43 @@ class KivraAuth:
             logging.error("Missing QR code or auth code in response")
             sys.exit("Authentication initialization failed")
         
-        # Generate and save QR code
+        # Render and display the initial (animated) BankID QR frame. BankID QR
+        # codes rotate every second; _poll_for_auth refreshes the frame on each
+        # poll so the user always scans a current one.
+        self._render_and_display_qr(qr_code)
+        print("\nQR-kod visas nu. Skanna den med BankID-appen.")
+
+        # Poll for authentication completion (refreshes the QR on each poll)
+        token_info = self._poll_for_auth(next_poll_url, auth_code, code_verifier)
+
+        # Clean up temporary QR code file
+        try:
+            os.remove(os.path.join(self.temp_dir, "kivra_qr.png"))
+        except:
+            pass
+
+        return token_info
+
+    def _render_and_display_qr(self, qr_code_value):
+        """Render an (animated) BankID QR string to an image and display it.
+
+        Called once for the initial frame and again on every poll so the
+        displayed QR stays current — BankID rejects stale frames.
+        """
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
             border=4,
         )
-        qr.add_data(qr_code)
+        qr.add_data(qr_code_value)
         qr.make(fit=True)
-        
-        # Create and save QR code as a temporary image
         img = qr.make_image(fill_color="black", back_color="white")
         temp_path = os.path.join(self.temp_dir, "kivra_qr.png")
         img.save(temp_path)
-        
-        # Display QR code using the interaction provider
         self.interaction_provider.display_qr_code(temp_path)
-        print("\nQR-kod visas nu. Skanna den med BankID-appen.")
-        
-        # Poll for authentication completion
-        token_info = self._poll_for_auth(next_poll_url, auth_code, code_verifier)
-        
-        # Clean up temporary QR code file
-        try:
-            os.remove(temp_path)
-        except:
-            pass
-            
-        return token_info
-    
+        return temp_path
+
     def _generate_code_verifier(self):
         """Generate a code verifier for PKCE."""
         return secrets.token_urlsafe(32)
@@ -147,13 +154,18 @@ class KivraAuth:
             dict: Token information including access_token and actor_key
         """
         print("\nWaiting for BankID authentication...")
-        
+
+        # Poll once per second so the displayed animated QR stays current.
+        # BankID rejects stale QR frames ("QR code is invalid"), so on each
+        # pending poll we re-render the fresh qr_code from the response.
+        poll_interval = 1
         while True:
-            time.sleep(5)
+            time.sleep(poll_interval)
             poll_response = self.session.get(f"https://app.api.kivra.com{next_poll_url}")
             poll_data = poll_response.json()
-            
-            if poll_data.get('status') == 'complete':
+            status = poll_data.get('status')
+
+            if status == 'complete':
                 print("\nBankID authentication successful!")
                 
                 # Notify interaction provider that authentication succeeded
@@ -207,8 +219,16 @@ class KivraAuth:
                     'jwt_data': jwt_data
                 }
             
-            elif poll_data.get('status') == 'pending':
+            elif status == 'pending':
                 print(".", end="", flush=True)  # Show progress
+                # Refresh the animated QR frame so it doesn't go stale.
+                new_qr = poll_data.get('qr_code')
+                if new_qr and getattr(self.interaction_provider, 'supports_qr_refresh', False):
+                    self._render_and_display_qr(new_qr)
+                # Follow the server-provided poll chain when present.
+                new_poll_url = poll_data.get('next_poll_url')
+                if new_poll_url:
+                    next_poll_url = new_poll_url
             else:
                 logging.error(f"Error during polling. Status: {poll_data.get('status')}, Response: {poll_data}")
                 sys.exit("BankID authentication failed")
