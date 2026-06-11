@@ -27,6 +27,7 @@ class KivraAuth:
         self.interaction_provider = interaction_provider
         self.session = requests.Session()
         self.client_id = "14085255171411300228f14dceae786da5a00285fe"
+        self.qr_temp_path = os.path.join(temp_dir, "kivra_qr.png")
         
     def authenticate(self, ssn):
         """
@@ -68,7 +69,7 @@ class KivraAuth:
 
         # Clean up temporary QR code file
         try:
-            os.remove(os.path.join(self.temp_dir, "kivra_qr.png"))
+            os.remove(self.qr_temp_path)
         except:
             pass
 
@@ -89,10 +90,9 @@ class KivraAuth:
         qr.add_data(qr_code_value)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
-        temp_path = os.path.join(self.temp_dir, "kivra_qr.png")
-        img.save(temp_path)
-        self.interaction_provider.display_qr_code(temp_path)
-        return temp_path
+        img.save(self.qr_temp_path)
+        self.interaction_provider.display_qr_code(self.qr_temp_path)
+        return self.qr_temp_path
 
     def _generate_code_verifier(self):
         """Generate a code verifier for PKCE."""
