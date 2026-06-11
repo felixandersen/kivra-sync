@@ -64,6 +64,15 @@ class KivraAuth:
         self._render_and_display_qr(qr_code)
         print("\nQR-kod visas nu. Skanna den med BankID-appen.")
 
+        # Providers that can't refresh the QR in place show a single static
+        # frame. BankID's animated QR rotates every second, so warn the user.
+        if not getattr(self.interaction_provider, 'supports_qr_refresh', False):
+            print(
+                "OBS: QR-koden uppdateras inte automatiskt med den här providern. "
+                "BankID:s animerade QR-kod roterar varje sekund — skanna direkt. "
+                "Får du felet \"QR-koden är ogiltig\" (RFA17), starta om synkroniseringen."
+            )
+
         # Poll for authentication completion (refreshes the QR on each poll)
         token_info = self._poll_for_auth(next_poll_url, auth_code, code_verifier)
 
