@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/felixandersen/kivra-sync/compare/v1.1.1...v1.1.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* Refresh animated BankID QR on each poll (fixes RFA17 'QR code is invalid') ([#4](https://github.com/felixandersen/kivra-sync/issues/4)) ([57513c3](https://github.com/felixandersen/kivra-sync/commit/57513c369509e00ab520a11d86603871afa1db46))
+
 ## [1.1.1](https://github.com/felixandersen/kivra-sync/compare/v1.1.0...v1.1.1) (2025-10-27)
 
 
