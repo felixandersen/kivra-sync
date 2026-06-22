@@ -156,21 +156,32 @@ function updateUI(data) {
 
 // Update status indicator
 function updateStatus(status, message) {
+    let updated = false;
+
+    className = `status ${status}`;
     // Update status class
-    statusElement.className = `status ${status}`;
+    if (className != statusElement.className) {
+        updated = true;
+        statusElement.className = className;
+    }
     
     // Update status text
-    statusTextElement.innerHTML = message;
+    if (message != statusTextElement.innerHTML) {
+        updated = true;
+        statusTextElement.innerHTML = message;
+    }
     
     // Add fade-in animation
-    statusElement.classList.add('fade-in');
-    setTimeout(() => statusElement.classList.remove('fade-in'), 300);
+    if (updated) {
+        statusElement.classList.add('fade-in');
+        setTimeout(() => statusElement.classList.remove('fade-in'), 300);
+    }
 }
 
 // Handle idle state
 function handleIdleState() {
     runButton.disabled = false;
-    runButton.innerHTML = 'Run sync now<br>(be ready with BankID app)';
+    runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
     hideElement(spinner);
     hideElement(resultsElement);
@@ -211,7 +222,7 @@ function handleAuthenticatedState() {
 // Handle completion state
 function handleCompleteState(stats, message) {
     runButton.disabled = false;
-    runButton.innerHTML = 'Run sync now<br>(be ready with BankID app)';
+    runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
     hideElement(spinner);
     
@@ -222,7 +233,7 @@ function handleCompleteState(stats, message) {
 // Handle error state
 function handleErrorState(message) {
     runButton.disabled = false;
-    runButton.innerHTML = 'Run sync now<br>(be ready with BankID app)';
+    runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
     hideElement(spinner);
     
@@ -299,6 +310,10 @@ function triggerSync() {
 
 // Utility functions
 function showElement(element, value = 'block') {
+    // only show fade if we're actually changing the display value
+    if (element.style.display === value) {
+        return;
+    }
     element.style.display = value;
     element.classList.add('fade-in');
     setTimeout(() => element.classList.remove('fade-in'), 300);
