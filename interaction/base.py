@@ -5,7 +5,11 @@ from abc import ABC, abstractmethod
 
 class InteractionProvider(ABC):
     """Abstract base class for interaction providers."""
-    
+
+    # Providers that can cheaply re-render the QR in place (e.g. the web UI)
+    # set this True so auth can refresh BankID's rotating animated QR each poll.
+    supports_qr_refresh = False
+
     @property
     def can_listen(self):
         """
