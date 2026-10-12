@@ -94,8 +94,8 @@ def main():
     parser.add_argument('--base-dir', help='Base directory for storing documents (default: script directory)')
     
     # Interaction provider selection
-    parser.add_argument('--interaction-provider', choices=['local', 'terminal', 'ntfy', 'web'], default='local',
-                        help='Interaction provider to use (default: local; terminal shows a refreshing QR)')
+    parser.add_argument('--interaction-provider', choices=['terminal', 'web', 'ntfy', 'local'], default='terminal',
+                        help='Interaction provider to use (default: terminal; local is deprecated)')
     
     # ntfy provider options
     parser.add_argument('--ntfy-topic', help='ntfy topic to send notifications to')
@@ -162,6 +162,8 @@ def main():
     
     # Initialize the interaction provider
     if args.interaction_provider == 'local':
+        logging.warning("The 'local' interaction provider is deprecated and will be removed in a future release; "
+                        "use 'terminal' (default) or 'web'.")
         interaction_provider = LocalInteractionProvider()
     elif args.interaction_provider == 'terminal':
         interaction_provider = TerminalInteractionProvider()

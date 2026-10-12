@@ -32,7 +32,7 @@ class TerminalInteractionProvider(LocalInteractionProvider):
             if not output.isatty():
                 raise RuntimeError(
                     'Terminal QR needs an interactive terminal; '
-                    'use --interaction-provider local or web instead'
+                    'use --interaction-provider web or ntfy instead'
                 )
             self._ensure_utf8(output)
             if width >= size.columns:
