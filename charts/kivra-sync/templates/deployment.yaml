@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kivra-sync.fullname" . }}
+  labels:
+    {{- include "kivra-sync.labels" . | nindent 4 }}
+spec:
+  # A single instance; the data volume is ReadWriteOnce
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "kivra-sync.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if not .Values.existingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "kivra-sync.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # Secrets are passed as environment variables and expanded into the arguments by Kubernetes
+          args:
+            - $(KIVRA_SSN)
+            - {{ printf "--interaction-provider=%v" .Values.interaction.provider | quote }}
+            {{- if include "kivra-sync.isWeb" . }}
+            - --web-host=0.0.0.0
+            - {{ printf "--web-port=%v" .Values.interaction.web.port | quote }}
+            {{- else }}
+            - {{ printf "--ntfy-topic=%v" .Values.interaction.ntfy.topic | quote }}
+            - {{ printf "--ntfy-server=%v" .Values.interaction.ntfy.server | quote }}
+            - {{ printf "--trigger-message=%v" .Values.interaction.ntfy.triggerMessage | quote }}
+            {{- if .Values.interaction.ntfy.user }}
+            - {{ printf "--ntfy-user=%v" .Values.interaction.ntfy.user | quote }}
+            - --ntfy-pass=$(NTFY_PASSWORD)
+            {{- end }}
+            {{- end }}
+            - {{ printf "--storage-provider=%v" .Values.storage.provider | quote }}
+            {{- if include "kivra-sync.usesFilesystem" . }}
+            - {{ printf "--base-dir=%v" .Values.storage.filesystem.baseDir | quote }}
+            {{- else }}
+            - {{ printf "--paperless-url=%v" .Values.storage.paperless.url | quote }}
+            - --paperless-token=$(PAPERLESS_TOKEN)
+            {{- with .Values.storage.paperless.tags }}
+            - {{ printf "--paperless-tags=%s" . | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if not .Values.fetch.receipts }}
+            - --no-fetch-receipts
+            {{- end }}
+            {{- if not .Values.fetch.letters }}
+            - --no-fetch-letters
+            {{- end }}
+            - {{ printf "--max-receipts=%d" (int .Values.fetch.maxReceipts) | quote }}
+            - {{ printf "--max-letters=%d" (int .Values.fetch.maxLetters) | quote }}
+            {{- if .Values.dryRun }}
+            - --dry-run
+            {{- end }}
+            {{- range .Values.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: KIVRA_SSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kivra-sync.secretName" . }}
+                  key: ssn
+            {{- if eq .Values.storage.provider "paperless" }}
+            - name: PAPERLESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kivra-sync.secretName" . }}
+                  key: paperless-token
+            {{- end }}
+            {{- if include "kivra-sync.usesNtfyPassword" . }}
+            - name: NTFY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kivra-sync.secretName" . }}
+                  key: ntfy-password
+            {{- end }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if include "kivra-sync.isWeb" . }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.interaction.web.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if and (include "kivra-sync.usesFilesystem" .) .Values.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.storage.filesystem.baseDir }}
+          {{- end }}
+      {{- if and (include "kivra-sync.usesFilesystem" .) .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "kivra-sync.fullname" .) }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

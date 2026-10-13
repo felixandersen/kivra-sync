@@ -6,6 +6,9 @@
 Dockerfile
 docker-compose.yml
 .dockerignore
+charts/
+.github/
+.claude/
 
 # Python
 __pycache__/

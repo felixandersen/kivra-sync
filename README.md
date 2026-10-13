@@ -36,7 +36,42 @@ docker compose build && docker compose up
 
 Note: this will not work with the default `local` interaction provider since there is currently no way for the provider to show the QR code required for login. The above is configured to launch with the `web` interaction provider.
 
-### Option 2: Using Python
+Prebuilt images are published to the GitHub Container Registry:
+
+```bash
+docker run -p 8080:8080 -v ./data:/data ghcr.io/lacuna-systems/kivra-sync:latest \
+  YYYYMMDDXXXX --interaction-provider=web --base-dir=/data
+```
+
+### Option 2: Using Kubernetes (Helm)
+
+The Helm chart is published as an OCI artifact to the GitHub Container Registry:
+
+```bash
+helm install kivra-sync oci://ghcr.io/lacuna-systems/charts/kivra-sync \
+  --set-string ssn=YYYYMMDDXXXX
+```
+
+By default this runs the `web` interaction provider and stores documents on a persistent volume. Use `kubectl port-forward svc/kivra-sync 8080` or enable the ingress (`ingress.enabled=true`) to reach the web interface. The web interface has no authentication, so do not expose it publicly.
+
+Example values for ntfy and Paperless-ngx:
+
+```yaml
+existingSecret: kivra-sync  # keys: ssn, paperless-token (and ntfy-password if ntfy.user is set)
+interaction:
+  provider: ntfy
+  ntfy:
+    topic: your-topic
+storage:
+  provider: paperless
+  paperless:
+    url: http://paperless.paperless.svc:8000/api
+    tags: kivra
+```
+
+See [`charts/kivra-sync/values.yaml`](charts/kivra-sync/values.yaml) for all options.
+
+### Option 3: Using Python
 
 ```bash
 # Install system dependencies (Debian/Ubuntu)
@@ -49,7 +84,7 @@ pip install -r requirements.txt
 python kivra_sync.py YYYYMMDDXXXX
 ```
 
-### Option 3: Using Nix (flake)
+### Option 4: Using Nix (flake)
 
 If you have Nix with flakes enabled:
 

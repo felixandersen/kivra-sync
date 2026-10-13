@@ -1,0 +1,17 @@
+{{- if include "kivra-sync.isWeb" . }}
+Open the web interface to start a sync and scan the BankID QR code:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "kivra-sync.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  then browse to http://localhost:{{ .Values.service.port }}
+{{- end }}
+
+The web interface has no authentication. Anyone who can reach it can start a
+sync and see the BankID QR code, so restrict access to it.
+{{- else }}
+Send "{{ .Values.interaction.ntfy.triggerMessage }}" to the ntfy topic "{{ .Values.interaction.ntfy.topic }}" to start a sync:
+  curl -d "{{ .Values.interaction.ntfy.triggerMessage }}" {{ .Values.interaction.ntfy.server }}/{{ .Values.interaction.ntfy.topic }}
+{{- end }}

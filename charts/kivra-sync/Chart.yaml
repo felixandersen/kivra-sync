@@ -1,0 +1,14 @@
+apiVersion: v2
+name: kivra-sync
+description: Download receipts and letters from Kivra to the filesystem or Paperless-ngx
+type: application
+# version and appVersion are set from the VERSION file when the chart is published
+version: 1.1.1
+appVersion: "1.1.1"
+home: https://github.com/lacuna-systems/kivra-sync
+sources:
+  - https://github.com/lacuna-systems/kivra-sync
+keywords:
+  - kivra
+  - paperless
+  - bankid
