@@ -6,6 +6,14 @@ const qrContainer = document.getElementById('qrContainer');
 const qrImage = document.getElementById('qrImage');
 const spinner = document.getElementById('spinner');
 const resultsElement = document.getElementById('results');
+const settingsForm = document.getElementById('settings');
+const ssnInput = document.getElementById('ssnInput');
+const ssnHint = document.getElementById('ssnHint');
+const modeInputs = document.querySelectorAll('input[name="accountMode"]');
+
+// Settings are kept in this browser only
+const STORAGE_KEYS = { ssn: 'kivraSync.ssn', accountMode: 'kivraSync.accountMode' };
+let serverConfig = { ssn_configured: false, default_account_mode: 'personal' };
 
 // Connection management
 let connectionState = {
@@ -20,13 +28,120 @@ let connectionState = {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
     initializeSSE();
     setupEventListeners();
 });
 
+// Storage access can throw (private browsing, blocked site data)
+function readSetting(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeSetting(key, value) {
+    try {
+        if (value) {
+            localStorage.setItem(key, value);
+        } else {
+            localStorage.removeItem(key);
+        }
+    } catch (error) {
+        console.warn('Could not save setting:', error);
+    }
+}
+
+// Load saved settings, falling back to the server defaults
+function loadSettings() {
+    ssnInput.value = readSetting(STORAGE_KEYS.ssn) || '';
+    setAccountMode(readSetting(STORAGE_KEYS.accountMode));
+
+    fetch('/config')
+        .then(response => response.ok ? response.json() : null)
+        .then(config => {
+            if (!config) {
+                return;
+            }
+            serverConfig = config;
+            if (!readSetting(STORAGE_KEYS.accountMode)) {
+                setAccountMode(config.default_account_mode);
+            }
+            updateSsnHint();
+        })
+        .catch(error => console.warn('Could not load server config:', error));
+}
+
+function setAccountMode(mode) {
+    modeInputs.forEach(input => {
+        if (input.value === mode) {
+            input.checked = true;
+        }
+    });
+}
+
+function getAccountMode() {
+    const checked = document.querySelector('input[name="accountMode"]:checked');
+    return checked ? checked.value : 'personal';
+}
+
+// Accept YYYYMMDDXXXX, optionally with a dash or spaces
+function normalizeSsn(value) {
+    const ssn = value.replace(/[\s-]/g, '');
+    return /^\d{12}$/.test(ssn) ? ssn : null;
+}
+
+function updateSsnHint(invalidMessage = null) {
+    ssnInput.classList.toggle('invalid', !!invalidMessage);
+    ssnHint.classList.toggle('invalid', !!invalidMessage);
+    if (invalidMessage) {
+        ssnHint.textContent = invalidMessage;
+    } else if (!ssnInput.value && serverConfig.ssn_configured) {
+        ssnHint.textContent = 'Leave empty to use the number configured on the server.';
+    } else {
+        ssnHint.textContent = 'Saved in this browser only.';
+    }
+}
+
+function setSettingsEnabled(enabled) {
+    settingsForm.classList.toggle('disabled', !enabled);
+    ssnInput.disabled = !enabled;
+    modeInputs.forEach(input => input.disabled = !enabled);
+}
+
 // Set up event listeners
 function setupEventListeners() {
     runButton.addEventListener('click', triggerSync);
+
+    settingsForm.addEventListener('submit', event => {
+        event.preventDefault();
+        triggerSync();
+    });
+
+    ssnInput.addEventListener('input', () => updateSsnHint());
+
+    ssnInput.addEventListener('change', () => {
+        const value = ssnInput.value.trim();
+        if (!value) {
+            writeSetting(STORAGE_KEYS.ssn, null);
+            updateSsnHint();
+            return;
+        }
+        const ssn = normalizeSsn(value);
+        if (ssn) {
+            ssnInput.value = ssn;
+            writeSetting(STORAGE_KEYS.ssn, ssn);
+            updateSsnHint();
+        } else {
+            updateSsnHint('Enter 12 digits: YYYYMMDDXXXX');
+        }
+    });
+
+    modeInputs.forEach(input => input.addEventListener('change', () => {
+        writeSetting(STORAGE_KEYS.accountMode, getAccountMode());
+    }));
 }
 
 // Initialize Server-Sent Events connection
@@ -180,6 +295,7 @@ function updateStatus(status, message) {
 
 // Handle idle state
 function handleIdleState() {
+    setSettingsEnabled(true);
     runButton.disabled = false;
     runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
@@ -189,6 +305,7 @@ function handleIdleState() {
 
 // Handle processing state
 function handleProcessingState() {
+    setSettingsEnabled(false);
     runButton.disabled = true;
     runButton.innerHTML = 'Processing...';
     hideElement(qrContainer);
@@ -198,6 +315,7 @@ function handleProcessingState() {
 
 // Handle QR ready state
 function handleQRReadyState(qrUrl) {
+    setSettingsEnabled(false);
     runButton.disabled = true;
     runButton.innerHTML = 'Scan QR code';
     
@@ -212,6 +330,7 @@ function handleQRReadyState(qrUrl) {
 
 // Handle authenticated state
 function handleAuthenticatedState() {
+    setSettingsEnabled(false);
     runButton.disabled = true;
     runButton.innerHTML = 'Syncing data...';
     hideElement(qrContainer);
@@ -221,6 +340,7 @@ function handleAuthenticatedState() {
 
 // Handle completion state
 function handleCompleteState(stats, message) {
+    setSettingsEnabled(true);
     runButton.disabled = false;
     runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
@@ -232,6 +352,7 @@ function handleCompleteState(stats, message) {
 
 // Handle error state
 function handleErrorState(message) {
+    setSettingsEnabled(true);
     runButton.disabled = false;
     runButton.innerHTML = 'Run sync now';
     hideElement(qrContainer);
@@ -286,12 +407,29 @@ function triggerSync() {
     if (runButton.disabled) {
         return;
     }
+
+    const options = { account_mode: getAccountMode() };
+    const value = ssnInput.value.trim();
+    if (value) {
+        const ssn = normalizeSsn(value);
+        if (!ssn) {
+            updateSsnHint('Enter 12 digits: YYYYMMDDXXXX');
+            ssnInput.focus();
+            return;
+        }
+        options.ssn = ssn;
+    } else if (!serverConfig.ssn_configured) {
+        updateSsnHint('Enter your personal identity number to sync');
+        ssnInput.focus();
+        return;
+    }
     
     fetch('/trigger', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(options)
     })
     .then(response => {
         if (!response.ok) {

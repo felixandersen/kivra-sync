@@ -13,16 +13,20 @@ from interaction.base import InteractionProvider
 class WebInteractionProvider(InteractionProvider):
     """Web-based interaction provider that serves an HTTP interface."""
     
-    def __init__(self, port=8080, host='0.0.0.0'):
+    def __init__(self, port=8080, host='0.0.0.0', ssn_configured=False, default_account_mode='personal'):
         """
         Initialize the web interaction provider.
         
         Args:
             port (int): Port to run the web server on (default: 8080)
             host (str): Host to bind to (default: 0.0.0.0)
+            ssn_configured (bool): Whether a personal identity number was given on the command line
+            default_account_mode (str): Account mode used when the browser has none saved
         """
         self.port = port
         self.host = host
+        self.ssn_configured = ssn_configured
+        self.default_account_mode = default_account_mode
         self.sse_clients = []
         self.current_state = {"status": "idle", "message": "Ready to sync"}
         self.server = None
@@ -171,6 +175,8 @@ class WebInteractionProvider(InteractionProvider):
                     self._serve_file('index.html', 'text/html')
                 elif path == '/events':
                     self._handle_sse()
+                elif path == '/config':
+                    self._serve_config()
                 elif path == '/qr.png':
                     self._serve_qr()
                 elif path.startswith('/static/'):
@@ -203,6 +209,18 @@ class WebInteractionProvider(InteractionProvider):
                     self.wfile.write(content.encode())
                 except FileNotFoundError:
                     self._send_404()
+            
+            def _serve_config(self):
+                # Never expose the configured personal identity number, only whether one exists
+                content = json.dumps({
+                    "ssn_configured": provider.ssn_configured,
+                    "default_account_mode": provider.default_account_mode
+                }).encode()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
             
             def _serve_qr(self):
                 if provider.qr_path and os.path.exists(provider.qr_path):
@@ -254,6 +272,19 @@ class WebInteractionProvider(InteractionProvider):
                         provider.sse_clients.remove(self)
             
             def _handle_trigger(self):
+                # Per-run options from the browser (personal identity number, account mode)
+                try:
+                    length = int(self.headers.get('Content-Length') or 0)
+                    options = json.loads(self.rfile.read(length) or b'{}') if length else {}
+                    if not isinstance(options, dict):
+                        raise ValueError("Expected a JSON object")
+                except ValueError:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(b'{"status": "error", "message": "Invalid request body"}')
+                    return
+                
                 # Send immediate response FIRST to prevent blocking
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -270,7 +301,14 @@ class WebInteractionProvider(InteractionProvider):
                         })
                         
                         # Run the actual sync
-                        provider.callback()
+                        exit_code = provider.callback(options)
+                        
+                        # Failures before completion (e.g. login) would otherwise leave the UI waiting
+                        if exit_code and provider.current_state.get("status") != "complete":
+                            provider._send_sse_message({
+                                "status": "error",
+                                "message": "Sync failed, check the terminal for details"
+                            })
                     except Exception as e:
                         logging.error(f"Error during sync: {str(e)}")
                         provider._send_sse_message({

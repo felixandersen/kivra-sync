@@ -20,6 +20,26 @@
                 </div>
             </div>
             
+            <form id="settings" class="settings-section" autocomplete="off">
+                <div class="field">
+                    <label for="ssnInput">Personal identity number</label>
+                    <input id="ssnInput" type="text" inputmode="numeric" placeholder="YYYYMMDDXXXX"
+                           maxlength="13" spellcheck="false">
+                    <p id="ssnHint" class="field-hint">Saved in this browser only.</p>
+                </div>
+                <fieldset class="field">
+                    <legend>Account</legend>
+                    <div class="segmented">
+                        <input type="radio" name="accountMode" id="modePersonal" value="personal" checked>
+                        <label for="modePersonal">Personal</label>
+                        <input type="radio" name="accountMode" id="modeBusiness" value="business">
+                        <label for="modeBusiness">Business</label>
+                        <input type="radio" name="accountMode" id="modeBoth" value="both">
+                        <label for="modeBoth">Both</label>
+                    </div>
+                </fieldset>
+            </form>
+            
             <div class="action-section">
                 <button id="runButton" class="run-button">
                     Run sync now

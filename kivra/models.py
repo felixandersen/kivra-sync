@@ -303,6 +303,34 @@ fragment ContentBaseDetails on IContentBaseDetails {
 }
 """
 
+# GraphQL query for listing the inboxes (own, shared and business accounts) of the logged in user
+INBOXES_QUERY = """
+query Inboxes {
+  inboxes {
+    key
+    name
+    type
+    role
+    isShared
+    isShareAccepted
+  }
+}
+"""
+
+# GraphQL query for fetching letter parts, scoped to the current actor
+CONTENT_DETAILS_QUERY = """
+query ContentDetails($key: ID!) {
+  content: contentV2(key: $key) {
+    key
+    parts {
+      name
+      mimeType
+      path
+    }
+  }
+}
+"""
+
 class KivraDocument:
     """Base class for Kivra documents (receipts and letters)."""
     

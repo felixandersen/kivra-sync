@@ -18,6 +18,7 @@ class LetterFetcher:
         """
         self.api_client = api_client
         self.document_store = document_store
+        self.use_graphql_details = False
     
     def fetch_letters(self, max_count=None):
         """
@@ -124,7 +125,7 @@ class LetterFetcher:
         
         try:
             # 1. Fetch detailed letter information
-            content_data = self.api_client.get_content_details(letter_key)
+            content_data = self._get_content_details(letter_key)
             
             # Combine metadata from the list with detailed information
             letter_data = {**letter_data, "content": content_data}
@@ -142,6 +143,28 @@ class LetterFetcher:
             logging.error(f"Error processing letter {letter_key}: {str(e)}")
         
         return letters_stored
+    
+    def _get_content_details(self, letter_key):
+        """
+        Get letter details, falling back to the actor-scoped GraphQL API for
+        business accounts if the REST endpoint does not grant access.
+        
+        Args:
+            letter_key (str): Letter key
+            
+        Returns:
+            dict: Letter content data
+        """
+        if self.use_graphql_details:
+            return self.api_client.get_content_details_v2(letter_key)
+        try:
+            return self.api_client.get_content_details(letter_key)
+        except Exception:
+            if self.api_client.actor_type == 'user':
+                raise
+            logging.info("Falling back to GraphQL content details for this business account")
+            self.use_graphql_details = True
+            return self.api_client.get_content_details_v2(letter_key)
     
     def _process_letter_parts(self, letter, content_data):
         """
@@ -174,7 +197,7 @@ class LetterFetcher:
             
             if content_type == 'text/plain':
                 # Save text/plain content
-                text_content = part.get('body', '')
+                text_content = part.get('body') if 'body' in part else self._get_part_text(part)
                 text_metadata = part_letter.get_metadata(content_type='text/plain')
                 
                 if self.document_store.store(text_content, text_metadata):
@@ -183,7 +206,7 @@ class LetterFetcher:
                 
             elif content_type == 'text/html':
                 # Save HTML content
-                html_content = part.get('body')
+                html_content = part.get('body') if 'body' in part else self._get_part_text(part)
                 html_metadata = part_letter.get_metadata(content_type='text/html')
                 
                 if self.document_store.store(html_content, html_metadata):
@@ -193,13 +216,17 @@ class LetterFetcher:
             elif content_type == 'application/pdf':
                 # Fetch and save PDF
                 file_key = part.get('key')
-                if not file_key:
+                file_path = part.get('path')
+                if not file_key and not file_path:
                     logging.warning(f"PDF part in letter {letter.key} missing key")
                     continue
                 
                 try:
                     # Fetch PDF content
-                    pdf_content = self.api_client.get_content_file(letter.key, file_key)
+                    if file_key:
+                        pdf_content = self.api_client.get_content_file(letter.key, file_key)
+                    else:
+                        pdf_content = self.api_client.get_core_path(file_path)
                     
                     # Store PDF
                     pdf_metadata = part_letter.get_metadata(content_type='application/pdf')
@@ -214,3 +241,17 @@ class LetterFetcher:
                 logging.warning(f"Unknown content type in letter {letter.key}: {content_type}")
         
         return parts_stored
+    
+    def _get_part_text(self, part):
+        """
+        Fetch the text body of a letter part that only has a path (GraphQL fallback).
+        
+        Args:
+            part (dict): Letter part
+            
+        Returns:
+            str: Part body
+        """
+        if not part.get('path'):
+            return ''
+        return self.api_client.get_core_path(part['path']).decode('utf-8', errors='replace')

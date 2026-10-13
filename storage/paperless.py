@@ -56,7 +56,8 @@ class PaperlessNgxStoreProvider(DocumentStoreProvider):
             
             # Check if tag exists - use case-insensitive exact match
             response = self.session.get(
-                f"{self.api_url}/tags/?name__iexact={tag_name}"
+                f"{self.api_url}/tags/",
+                params={'name__iexact': tag_name}
             )
             
             if response.status_code == 200:

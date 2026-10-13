@@ -116,6 +116,14 @@ python kivra_sync.py YYYYMMDDXXXX --interaction-provider web --web-port 8080
 
 Then navigate to `http://localhost:8080` in your browser to access the interface. Perfect for containerized deployments where GUI access is not available.
 
+The personal identity number is optional with the web provider. You can start the server without it:
+
+```bash
+python kivra_sync.py --interaction-provider web --web-port 8080
+```
+
+Enter the number in the web interface instead. It is saved in your browser's local storage, not on the server. The web interface also lets you choose which accounts to sync: **Personal**, **Business** or **Both** (see [Business Accounts](#business-accounts)). The choice is saved in the browser as well. If a number is given on the command line, it is used whenever the field in the browser is left empty.
+
 #### ntfy Interaction
 
 Sends QR codes and reports via ntfy.sh, with optional listening mode:
@@ -148,12 +156,26 @@ python kivra_sync.py YYYYMMDDXXXX --max-letters 10 --max-receipts 5
 python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 ```
 
+### Business Accounts
+
+If you have access to business mailboxes (company or association inboxes) in Kivra, their letters can be synced in the same run, using the same BankID login. Receipts are only available for the personal inbox.
+
+```bash
+# Sync personal inbox and all business accounts
+python kivra_sync.py YYYYMMDDXXXX --include-business
+
+# Sync only selected business accounts (by name or key), skipping the personal inbox
+python kivra_sync.py YYYYMMDDXXXX --business-only --business-accounts "My Company AB"
+```
+
+With filesystem storage, business documents are stored under `<base-dir>/<ssn>/Business/<name>_<key>/Letters/`. With Paperless-ngx, business documents also get the business account's name as a tag.
+
 ## Command-Line Reference
 
 ### General Options
 | Option | Description |
 |--------|-------------|
-| `YYYYMMDDXXXX` (positional) | Personal identity number |
+| `YYYYMMDDXXXX` (positional) | Personal identity number (optional with `--interaction-provider web`) |
 | `--dry-run` | Do not actually store documents, just simulate |
 
 ### Storage Options
@@ -188,6 +210,14 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 | `--fetch-letters` / `--no-fetch-letters` | Enable/disable letter fetching (default: enabled) |
 | `--max-receipts N` | Maximum number of receipts to fetch (0 for unlimited) |
 | `--max-letters N` | Maximum number of letters to fetch (0 for unlimited) |
+
+### Business Account Options
+
+| Option | Description |
+|--------|-------------|
+| `--include-business` | Also sync letters from business accounts you have access to |
+| `--business-accounts NAMES` | Comma-separated list of business account names or keys to sync (default: all, implies `--include-business`) |
+| `--business-only` | Only sync business accounts, skip the personal inbox (implies `--include-business`) |
 
 ## Project Structure
 
