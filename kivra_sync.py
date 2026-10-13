@@ -166,7 +166,10 @@ def main():
                         "use 'terminal' (default) or 'web'.")
         interaction_provider = LocalInteractionProvider()
     elif args.interaction_provider == 'terminal':
-        interaction_provider = TerminalInteractionProvider()
+        try:
+            interaction_provider = TerminalInteractionProvider()
+        except RuntimeError as error:
+            parser.error(str(error))
     elif args.interaction_provider == 'ntfy':
         if not args.ntfy_topic:
             parser.error("--ntfy-topic is required when using the ntfy interaction provider")

@@ -38,7 +38,7 @@ Documents are saved to `./data` on your machine.
 
 - `-it` is required, since the QR code is shown in the terminal.
 - `--base-dir /data` makes the documents land in the mounted volume rather than inside the container.
-- The terminal window needs to be large enough for the QR code (about 107 columns × 58 rows). You'll get an error saying the required size if it is too small.
+- The terminal window needs to be large enough for the QR code (about 54 columns × 32 rows; the actual size depends on the payload). You'll get an error saying the required size if it is too small.
 
 ### Option 2: Using Docker Compose (headless, web UI)
 
@@ -52,6 +52,8 @@ docker compose build && docker compose up
 ```
 
 Then navigate to `http://localhost:8080` to trigger a sync and scan the QR code.
+
+The supplied Compose setup has neither an interactive terminal for `terminal` nor a desktop image viewer for `local`, so it uses `web`. The `ntfy` provider is another option for headless runs.
 
 ### Option 3: Using Python
 
@@ -123,7 +125,9 @@ Draws the BankID QR code directly in the terminal and refreshes it on every poll
 python kivra_sync.py YYYYMMDDXXXX --interaction-provider terminal
 ```
 
-Requires an interactive terminal (use `docker run -it` in Docker) that is large enough for the QR code, about 107 columns × 58 rows. If output isn't a terminal, use the `web` or `ntfy` provider instead.
+Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters and enough space for the QR code, about 54 columns × 32 rows depending on the payload. Windows console ANSI handling is initialized automatically. If output isn't a terminal, the script stops before authentication starts; use the `web` or `ntfy` provider instead.
+
+When upgrading, cron, systemd, and Docker runs without `-it` must select `web` or `ntfy` explicitly because `terminal` is now the default. If the window is resized too small during authentication, QR updates pause until it is enlarged again.
 
 #### Web Interaction
 

@@ -1,19 +1,33 @@
 """Display BankID's refreshing QR directly in the terminal."""
 
 import codecs
+import os
 import shutil
 import sys
 
 import qrcode
 
-from interaction.local import LocalInteractionProvider
+from interaction.base import InteractionProvider
 
 
-class TerminalInteractionProvider(LocalInteractionProvider):
+class TerminalInteractionProvider(InteractionProvider):
     supports_qr_refresh = True
 
     def __init__(self):
+        super().__init__()
+        if not sys.stdout.isatty():
+            raise RuntimeError(
+                'Terminal QR needs an interactive terminal; '
+                'use --interaction-provider web or ntfy instead'
+            )
+        self._ensure_utf8(sys.stdout)
+        if os.name == 'nt':
+            # Initialize Windows console ANSI handling before the first frame.
+            os.system('')
         self._frame_drawn = False
+
+    def display_qr_code(self, qr_image_path):
+        raise NotImplementedError('Terminal QR requires QR payload text, not an image')
 
     def display_qr_payload(self, payload):
         qr = qrcode.QRCode(border=4, box_size=1)
@@ -22,36 +36,39 @@ class TerminalInteractionProvider(LocalInteractionProvider):
         matrix = qr.get_matrix()
 
         output = sys.stdout
-        width = len(matrix[0]) * 2
+        width = len(matrix[0])
         # Authentication messages need room below the first frame.
-        required_rows = len(matrix) + 5
+        required_rows = (len(matrix) + 1) // 2 + 5
         size = shutil.get_terminal_size()
         fits = width < size.columns and required_rows <= size.lines
 
         if not self._frame_drawn:
-            if not output.isatty():
-                raise RuntimeError(
-                    'Terminal QR needs an interactive terminal; '
-                    'use --interaction-provider web or ntfy instead'
-                )
-            self._ensure_utf8(output)
             if width >= size.columns:
                 raise RuntimeError(f'Terminal QR needs at least {width + 1} columns; current width is {size.columns}')
             if required_rows > size.lines:
                 raise RuntimeError(f'Terminal QR needs at least {required_rows} rows; current height is {size.lines}')
-            output.write('\x1b[2J\x1b[H')
-            self._draw(output, matrix)
-            self._frame_drawn = True
-            return
-
         # The window may have been resized mid-login; skip this frame rather
         # than abort, and redraw once the QR fits again.
         if not fits:
             return
 
-        # Redraw in place, keeping the status lines and progress dots below.
-        output.write('\x1b7\x1b[H')
-        self._draw(output, matrix, restore_cursor=True)
+        # Anchor each frame so scrolling progress dots cannot move the QR.
+        output.write('\x1b[2J\x1b[H')
+        self._draw(output, matrix)
+        output.write('Scan with the BankID app.')
+        output.flush()
+        self._frame_drawn = True
+
+    def report_completion(self, stats):
+        print('\nAll done!')
+        for label, key in [('Receipts', 'receipts'), ('Letters', 'letters')]:
+            fetched = stats[f'{key}_fetched']
+            total = stats[f'{key}_total']
+            count = fetched if fetched == total else f'{fetched} of {total}'
+            print(f'{label}: {stats.get(f"{key}_stored", 0)} new items, {count} fetched')
+
+    def report_authentication_success(self):
+        print('BankID authentication successful! Starting data sync...')
 
     @staticmethod
     def _ensure_utf8(output):
@@ -67,13 +84,13 @@ class TerminalInteractionProvider(LocalInteractionProvider):
         output.reconfigure(encoding='utf-8')
 
     @staticmethod
-    def _draw(output, matrix, restore_cursor=False):
+    def _draw(output, matrix):
+        # Each character holds two vertical modules; pad an odd final row white.
+        rows = matrix + ([[False] * len(matrix[0])] if len(matrix) % 2 else [])
         try:
             output.write('\x1b[30;47m')
-            for row in matrix:
-                output.write(''.join('██' if module else '  ' for module in row) + '\n')
+            for top, bottom in zip(rows[::2], rows[1::2]):
+                output.write(''.join(' ▀▄█'[t + 2 * b] for t, b in zip(top, bottom)) + '\n')
         finally:
             output.write('\x1b[0m')
-            if restore_cursor:
-                output.write('\x1b8')
             output.flush()
