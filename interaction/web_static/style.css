@@ -136,6 +136,23 @@ header h1 {
     font-weight: 500;
 }
 
+.bankid-app-button {
+    display: block;
+    background: #333;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.bankid-app-button:hover {
+    background: #555;
+}
+
 .qr-wrapper {
     margin: 1rem 0;
     display: flex;

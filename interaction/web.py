@@ -39,6 +39,8 @@ class WebInteractionProvider(InteractionProvider):
         # browser actually reloads the image instead of using a cached frame.
         self.qr_seq = 0
         self.supports_qr_refresh = True
+        # Lets a browser on a mobile device open the BankID app directly.
+        self.autostart_token = None
 
     @property
     def can_listen(self):
@@ -94,7 +96,8 @@ class WebInteractionProvider(InteractionProvider):
                 self._send_sse_message({
                     "status": "qr_ready",
                     "message": "Please scan the QR code with BankID",
-                    "qr_url": f"/qr.png?v={self.qr_seq}"
+                    "qr_url": f"/qr.png?v={self.qr_seq}",
+                    "autostart_token": self.autostart_token
                 })
                 
                 print(f"QR code available at web interface and saved as: {qr_image_path}")
@@ -105,6 +108,15 @@ class WebInteractionProvider(InteractionProvider):
             logging.error(f"Error serving QR code via web interface: {str(e)}")
             print(f"Error serving QR code via web interface. QR code saved as: {qr_image_path}")
     
+    def set_autostart_token(self, autostart_token):
+        """
+        Store the BankID autostart token so it is sent along with the QR code.
+
+        Args:
+            autostart_token (str): BankID autostart token, or None
+        """
+        self.autostart_token = autostart_token
+
     def report_completion(self, stats):
         """
         Report completion statistics via the web interface.
@@ -138,6 +150,7 @@ class WebInteractionProvider(InteractionProvider):
         """
         Report that BankID authentication was successful and data sync is starting.
         """
+        self.autostart_token = None
         self._send_sse_message({
             "status": "authenticated",
             "message": "BankID authentication successful! \n\nCheck terminal for detailed progress."

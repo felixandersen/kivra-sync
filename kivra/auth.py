@@ -58,6 +58,9 @@ class KivraAuth:
             logging.error("Missing QR code or auth code in response")
             sys.exit("Authentication initialization failed")
         
+        # Lets providers on the user's own device open the BankID app directly.
+        self.interaction_provider.set_autostart_token(auth_data.get('auto_start_token'))
+
         # Render and display the initial (animated) BankID QR frame. BankID QR
         # codes rotate every second; _poll_for_auth refreshes the frame on each
         # poll so the user always scans a current one.

@@ -4,6 +4,7 @@ const statusTextElement = document.getElementById('status-text');
 const runButton = document.getElementById('runButton');
 const qrContainer = document.getElementById('qrContainer');
 const qrImage = document.getElementById('qrImage');
+const bankidAppLink = document.getElementById('bankidAppLink');
 const spinner = document.getElementById('spinner');
 const resultsElement = document.getElementById('results');
 const settingsForm = document.getElementById('settings');
@@ -255,7 +256,7 @@ function updateUI(data) {
             handleProcessingState();
             break;
         case 'qr_ready':
-            handleQRReadyState(data.qr_url);
+            handleQRReadyState(data.qr_url, data.autostart_token);
             break;
         case 'authenticated':
             handleAuthenticatedState();
@@ -313,14 +314,40 @@ function handleProcessingState() {
     hideElement(resultsElement);
 }
 
+// Detect phones and tablets, where the QR can't be scanned with the same device
+function isMobileDevice() {
+    if (navigator.userAgentData && navigator.userAgentData.mobile) {
+        return true;
+    }
+    if (/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)) {
+        return true;
+    }
+    // iPadOS reports itself as a Mac; tell it apart by its touch screen
+    return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+}
+
+// Show a link that opens the BankID app on this device (mobile only)
+function updateBankidAppLink(autostartToken) {
+    if (!autostartToken || !isMobileDevice()) {
+        hideElement(bankidAppLink);
+        return;
+    }
+    const href = `https://app.bankid.com/?autostarttoken=${encodeURIComponent(autostartToken)}&redirect=null`;
+    if (bankidAppLink.getAttribute('href') !== href) {
+        bankidAppLink.setAttribute('href', href);
+    }
+    showElement(bankidAppLink);
+}
+
 // Handle QR ready state
-function handleQRReadyState(qrUrl) {
+function handleQRReadyState(qrUrl, autostartToken) {
     setSettingsEnabled(false);
     runButton.disabled = true;
     runButton.innerHTML = 'Scan QR code';
     
     if (qrUrl) {
         qrImage.src = qrUrl;
+        updateBankidAppLink(autostartToken);
         showElement(qrContainer);
     }
     

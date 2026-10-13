@@ -44,6 +44,19 @@ class InteractionProvider(ABC):
         pass
     
     @abstractmethod
+    def set_autostart_token(self, autostart_token):
+        """
+        Receive the BankID autostart token for the pending login.
+
+        Providers shown on the user's own device (e.g. the web UI on a phone)
+        can use it to open the BankID app directly instead of scanning a QR.
+        Ignored by default.
+
+        Args:
+            autostart_token (str): BankID autostart token, or None
+        """
+        pass
+
     def report_completion(self, stats):
         """
         Report completion statistics.
