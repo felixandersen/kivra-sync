@@ -129,6 +129,17 @@ python kivra_sync.py YYYYMMDDXXXX --storage-provider paperless \
   --paperless-tags "kivra,receipts,automated"
 ```
 
+The API token must belong to a Paperless-ngx user with the following permissions:
+
+| Object | Permissions | Used for |
+|---|---|---|
+| Document | View, Add | Checking for already-uploaded documents and uploading new ones |
+| Tag | View, Add | Looking up and creating the configured tags |
+| Correspondent | View, Add | Looking up and creating a correspondent for each sender |
+| Document Type | View, Add | Looking up and creating document types |
+
+No change or delete permissions are needed. If you use a dedicated (non-superuser) account, make sure it can also *see* existing documents, tags, correspondents and document types (e.g. by owning them or having view access). Otherwise duplicates won't be detected and existing objects won't be matched.
+
 ### Interaction Providers
 
 Interaction providers handle user interaction during authentication and report completion statistics.
