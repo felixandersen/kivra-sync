@@ -38,7 +38,7 @@ Documents are saved to `./data` on your machine.
 
 - `-it` is required, since the QR code is shown in the terminal.
 - `--base-dir /data` makes the documents land in the mounted volume rather than inside the container.
-- The terminal window needs to be large enough for the QR code (about 54 columns × 32 rows; the actual size depends on the payload). You'll get an error saying the required size if it is too small.
+- Before login, the terminal must be at least 60 columns × 32 rows. A typical compact QR and its status area need about 54 columns × 32 rows; larger payloads may require more space, which the error message will report.
 
 ### Option 2: Using Docker Compose (headless, web UI)
 
@@ -125,7 +125,7 @@ Draws the BankID QR code directly in the terminal and refreshes it on every poll
 python kivra_sync.py YYYYMMDDXXXX --interaction-provider terminal
 ```
 
-Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters and enough space for the QR code, about 54 columns × 32 rows depending on the payload. Windows console ANSI handling is initialized automatically. If output isn't a terminal, the script stops before authentication starts; use the `web` or `ntfy` provider instead.
+Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters. Startup checks for at least 60 columns × 32 rows before authentication; the exact size is checked again when the QR payload arrives. A typical compact QR and its status area need about 54 columns × 32 rows, but larger payloads may require more. Windows console ANSI handling is initialized automatically. If output isn't a terminal, use the `web` or `ntfy` provider instead.
 
 When upgrading, cron, systemd, and Docker runs without `-it` must select `web` or `ntfy` explicitly because `terminal` is now the default. If the window is resized too small during authentication, QR updates pause until it is enlarged again.
 

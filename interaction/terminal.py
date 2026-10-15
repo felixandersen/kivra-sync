@@ -20,6 +20,13 @@ class TerminalInteractionProvider(InteractionProvider):
                 'Terminal QR needs an interactive terminal; '
                 'use --interaction-provider web or ntfy instead'
             )
+        size = shutil.get_terminal_size()
+        if size.columns < 60 or size.lines < 32:
+            raise RuntimeError(
+                'Terminal QR needs at least 60 columns and 32 rows before login; '
+                f'current size is {size.columns} columns and {size.lines} rows. '
+                'Enlarge the terminal or use --interaction-provider web or ntfy'
+            )
         self._ensure_utf8(sys.stdout)
         if os.name == 'nt':
             # Initialize Windows console ANSI handling before the first frame.
@@ -53,17 +60,17 @@ class TerminalInteractionProvider(InteractionProvider):
             return
 
         # Anchor each frame so scrolling progress dots cannot move the QR.
-        output.write('\x1b[2J\x1b[H')
+        output.write('\x1b[H' if self._frame_drawn else '\x1b[2J\x1b[H')
         self._draw(output, matrix)
-        output.write('Scan with the BankID app.')
+        output.write('\x1b[JScan with the BankID app.')
         output.flush()
         self._frame_drawn = True
 
     def report_completion(self, stats):
         print('\nAll done!')
         for label, key in [('Receipts', 'receipts'), ('Letters', 'letters')]:
-            fetched = stats[f'{key}_fetched']
-            total = stats[f'{key}_total']
+            fetched = stats.get(f'{key}_fetched', 0)
+            total = stats.get(f'{key}_total', 0)
             count = fetched if fetched == total else f'{fetched} of {total}'
             print(f'{label}: {stats.get(f"{key}_stored", 0)} new items, {count} fetched')
 

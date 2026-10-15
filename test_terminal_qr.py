@@ -2,14 +2,17 @@
 """Offline terminal QR regression tests. Run: python -m unittest test_terminal_qr"""
 
 import io
+import logging
 import os
+import tempfile
 import unittest
 from contextlib import ExitStack
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import qrcode
 
 from interaction.terminal import TerminalInteractionProvider
+from kivra.auth import KivraAuth
 
 
 class FakeTTY(io.StringIO):
@@ -57,11 +60,30 @@ class TerminalQRTests(unittest.TestCase):
             provider.display_qr_payload('second-frame')
         self.windows_console.assert_called_once_with('')
 
+    def test_small_terminal_rejected_during_construction(self):
+        for size in [(59, 32), (60, 31)]:
+            with self.subTest(size=size):
+                self.size.return_value = os.terminal_size(size)
+                with self.assertRaisesRegex(RuntimeError, '60 columns and 32 rows before login'):
+                    TerminalInteractionProvider()
+        self.windows_console.assert_not_called()
+        self.assertEqual(self.output.getvalue(), '')
+
+    def test_preflight_minimum_fits_typical_bankid_payload(self):
+        self.size.return_value = os.terminal_size((60, 32))
+        provider = TerminalInteractionProvider()
+        provider.display_qr_payload(
+            'bankid.01234567-89ab-cdef-0123-456789abcdef.1234567890.'
+            + 'abcdef0123456789' * 4
+        )
+        self.assertIn('Scan with the BankID app.', self.output.getvalue())
+
     def test_initial_frame_rejects_insufficient_size(self):
         for size, dimension in [((10, 60), 'columns'), ((120, 10), 'rows')]:
             with self.subTest(dimension=dimension):
-                self.size.return_value = os.terminal_size(size)
+                self.size.return_value = os.terminal_size((120, 60))
                 provider = TerminalInteractionProvider()
+                self.size.return_value = os.terminal_size(size)
                 with self.assertRaisesRegex(RuntimeError, dimension):
                     provider.display_qr_payload('bankid.test-frame')
                 self.assertEqual(self.output.getvalue(), '')
@@ -76,7 +98,10 @@ class TerminalQRTests(unittest.TestCase):
         self.size.return_value = os.terminal_size((120, 60))
         provider.display_qr_payload('bankid.next-frame')
         second = self.output.getvalue()[len(first):]
-        self.assertTrue(second.startswith('\x1b[2J\x1b[H'))
+        self.assertTrue(first.startswith('\x1b[2J\x1b[H'))
+        self.assertTrue(second.startswith('\x1b[H'))
+        self.assertNotIn('\x1b[2J', second)
+        self.assertIn('\x1b[JScan with the BankID app.', second)
         self.assertNotEqual(first, second)
         self.assertNotIn('\x1b7', second)
         self.assertNotIn('\x1b8', second)
@@ -105,7 +130,26 @@ class TerminalQRTests(unittest.TestCase):
         self.assertFalse(any(decoded[-1]))
         self.assertTrue(all(not any(row) for row in decoded[:4]))
         self.assertTrue(all(not any(row[:4] + row[-4:]) for row in decoded))
-        self.assertTrue(output.endswith('\x1b[0mScan with the BankID app.'))
+        self.assertTrue(output.endswith('\x1b[0m\x1b[JScan with the BankID app.'))
+
+    def test_poll_error_remains_visible_after_final_refresh(self):
+        provider = TerminalInteractionProvider()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            auth = KivraAuth(temp_dir, provider)
+            auth.session.get = Mock(side_effect=[
+                Mock(json=lambda: {'status': 'pending', 'qr_code': 'bankid.fresh-frame'}),
+                Mock(json=lambda: {'status': 'stop'}),
+            ])
+            auth._render_and_display_qr('bankid.initial-frame')
+            with patch('kivra.auth.time.sleep'), self.assertLogs(level='ERROR'):
+                logging.getLogger().addHandler(logging.StreamHandler(self.output))
+                with self.assertRaises(SystemExit):
+                    auth._poll_for_auth('/poll', 'test-code', 'test-verifier')
+        output = self.output.getvalue()
+        error_position = output.index('Error during polling. Status: stop')
+        self.assertNotIn('\x1b[H', output[error_position:])
+        self.assertNotIn('\x1b[J', output[error_position:])
+        self.assertEqual(auth.session.get.call_count, 2)
 
     def test_output_encoding_is_checked_before_login(self):
         self.output.output_encoding = 'UTF_8'
@@ -128,6 +172,12 @@ class TerminalQRTests(unittest.TestCase):
         self.assertEqual(self.output.getvalue(),
                          '\nAll done!\nReceipts: 0 new items, 0 fetched\n'
                          'Letters: 1 new items, 1 of 3 fetched\n')
+
+    def test_console_reports_missing_counters_as_zero(self):
+        TerminalInteractionProvider().report_completion({'letters_total': 3})
+        self.assertEqual(self.output.getvalue(),
+                         '\nAll done!\nReceipts: 0 new items, 0 fetched\n'
+                         'Letters: 0 new items, 0 of 3 fetched\n')
 
 
 if __name__ == '__main__':
