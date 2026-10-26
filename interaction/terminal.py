@@ -12,6 +12,10 @@ from interaction.base import InteractionProvider
 
 class TerminalInteractionProvider(InteractionProvider):
     supports_qr_refresh = True
+    # The status line is drawn below the QR on every frame, so auth must not
+    # print its own status messages there (they would be overwritten).
+    shows_auth_status = True
+    STATUS = 'Scan the QR code with the BankID app. Waiting for login…'
 
     def __init__(self):
         super().__init__()
@@ -44,8 +48,8 @@ class TerminalInteractionProvider(InteractionProvider):
 
         output = sys.stdout
         width = len(matrix[0])
-        # Authentication messages need room below the first frame.
-        required_rows = (len(matrix) + 1) // 2 + 5
+        # Room for the status line and the cursor line below it.
+        required_rows = (len(matrix) + 1) // 2 + 2
         size = shutil.get_terminal_size()
         fits = width < size.columns and required_rows <= size.lines
 
@@ -62,7 +66,7 @@ class TerminalInteractionProvider(InteractionProvider):
         # Anchor each frame so scrolling progress dots cannot move the QR.
         output.write('\x1b[H' if self._frame_drawn else '\x1b[2J\x1b[H')
         self._draw(output, matrix)
-        output.write('\x1b[JScan with the BankID app.')
+        output.write(f'\x1b[J{self.STATUS}\n')
         output.flush()
         self._frame_drawn = True
 

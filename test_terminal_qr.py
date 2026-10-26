@@ -76,7 +76,7 @@ class TerminalQRTests(unittest.TestCase):
             'bankid.01234567-89ab-cdef-0123-456789abcdef.1234567890.'
             + 'abcdef0123456789' * 4
         )
-        self.assertIn('Scan with the BankID app.', self.output.getvalue())
+        self.assertIn(TerminalInteractionProvider.STATUS, self.output.getvalue())
 
     def test_initial_frame_rejects_insufficient_size(self):
         for size, dimension in [((10, 60), 'columns'), ((120, 10), 'rows')]:
@@ -101,7 +101,7 @@ class TerminalQRTests(unittest.TestCase):
         self.assertTrue(first.startswith('\x1b[2J\x1b[H'))
         self.assertTrue(second.startswith('\x1b[H'))
         self.assertNotIn('\x1b[2J', second)
-        self.assertIn('\x1b[JScan with the BankID app.', second)
+        self.assertIn(f'\x1b[J{TerminalInteractionProvider.STATUS}\n', second)
         self.assertNotEqual(first, second)
         self.assertNotIn('\x1b7', second)
         self.assertNotIn('\x1b8', second)
@@ -130,7 +130,7 @@ class TerminalQRTests(unittest.TestCase):
         self.assertFalse(any(decoded[-1]))
         self.assertTrue(all(not any(row) for row in decoded[:4]))
         self.assertTrue(all(not any(row[:4] + row[-4:]) for row in decoded))
-        self.assertTrue(output.endswith('\x1b[0m\x1b[JScan with the BankID app.'))
+        self.assertTrue(output.endswith(f'\x1b[0m\x1b[J{TerminalInteractionProvider.STATUS}\n'))
 
     def test_poll_error_remains_visible_after_final_refresh(self):
         provider = TerminalInteractionProvider()
@@ -150,6 +150,9 @@ class TerminalQRTests(unittest.TestCase):
         self.assertNotIn('\x1b[H', output[error_position:])
         self.assertNotIn('\x1b[J', output[error_position:])
         self.assertEqual(auth.session.get.call_count, 2)
+        # Auth leaves the status to the provider instead of printing below the QR.
+        self.assertNotIn('Waiting for BankID', output)
+        self.assertNotIn(f'{TerminalInteractionProvider.STATUS}\n.', output)
 
     def test_output_encoding_is_checked_before_login(self):
         self.output.output_encoding = 'UTF_8'

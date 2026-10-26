@@ -38,7 +38,7 @@ Documents are saved to `./data` on your machine.
 
 - `-it` is required, since the QR code is shown in the terminal.
 - `--base-dir /data` makes the documents land in the mounted volume rather than inside the container.
-- Before login, the terminal must be at least 60 columns × 32 rows. A typical compact QR and its status area need about 54 columns × 32 rows; larger payloads may require more space, which the error message will report.
+- Before login, the terminal must be at least 60 columns × 32 rows. A typical compact QR and its status line need about 54 columns × 29 rows; larger payloads may require more space, which the error message will report.
 
 ### Option 2: Using Docker Compose (headless, web UI)
 
@@ -125,7 +125,7 @@ Draws the BankID QR code directly in the terminal and refreshes it on every poll
 python kivra_sync.py YYYYMMDDXXXX --interaction-provider terminal
 ```
 
-Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters. Startup checks for at least 60 columns × 32 rows before authentication; the exact size is checked again when the QR payload arrives. A typical compact QR and its status area need about 54 columns × 32 rows, but larger payloads may require more. Windows console ANSI handling is initialized automatically. If output isn't a terminal, use the `web` or `ntfy` provider instead.
+Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters. Startup checks for at least 60 columns × 32 rows before authentication; the exact size is checked again when the QR payload arrives. A typical compact QR and its status line need about 54 columns × 29 rows, but larger payloads may require more. Windows console ANSI handling is initialized automatically. If output isn't a terminal, use the `web` or `ntfy` provider instead.
 
 When upgrading, cron, systemd, and Docker runs without `-it` must select `web` or `ntfy` explicitly because `terminal` is now the default. If the window is resized too small during authentication, QR updates pause until it is enlarged again.
 
@@ -155,7 +155,7 @@ curl -d "run now" ntfy.sh/your-topic
 
 #### Local Interaction (deprecated)
 
-Opens the QR code image in your system's image viewer. It only shows a single static frame, which BankID may reject as stale ("QR-koden är ogiltig", RFA17). This provider will be removed in a future release; use `terminal` instead.
+Opens the QR code image in your system's image viewer. It only shows a single static frame, which BankID may reject as stale ("QR-koden är ogiltig" / "QR code is invalid", RFA17). This provider will be removed in a future release; use `terminal` instead.
 
 ```bash
 python kivra_sync.py YYYYMMDDXXXX --interaction-provider local

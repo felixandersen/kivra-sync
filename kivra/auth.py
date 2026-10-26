@@ -62,15 +62,16 @@ class KivraAuth:
         # codes rotate every second; _poll_for_auth refreshes the frame on each
         # poll so the user always scans a current one.
         self._render_and_display_qr(qr_code)
-        print("\nQR-kod visas nu. Skanna den med BankID-appen.")
+        if not getattr(self.interaction_provider, 'shows_auth_status', False):
+            print("\nQR code is now shown. Scan it with the BankID app.")
 
         # Providers that can't refresh the QR in place show a single static
         # frame. BankID's animated QR rotates every second, so warn the user.
         if not getattr(self.interaction_provider, 'supports_qr_refresh', False):
             print(
-                "OBS: QR-koden uppdateras inte automatiskt med den här providern. "
-                "BankID:s animerade QR-kod roterar varje sekund — skanna direkt. "
-                "Får du felet \"QR-koden är ogiltig\" (RFA17), starta om synkroniseringen."
+                "Note: the QR code does not refresh automatically with this provider. "
+                "BankID's animated QR code rotates every second, so scan it right away. "
+                "If you get the error \"QR code is invalid\" (RFA17), restart the sync."
             )
 
         # Poll for authentication completion (refreshes the QR on each poll)
@@ -167,7 +168,10 @@ class KivraAuth:
         Returns:
             dict: Token information including access_token and actor_key
         """
-        print("\nWaiting for BankID authentication...")
+        # Providers that draw their own status line would have it overwritten.
+        shows_status = getattr(self.interaction_provider, 'shows_auth_status', False)
+        if not shows_status:
+            print("\nWaiting for BankID authentication...")
 
         # Poll once per second so the displayed animated QR stays current.
         # BankID rejects stale QR frames ("QR code is invalid"), so on each
@@ -234,7 +238,8 @@ class KivraAuth:
                 }
             
             elif status == 'pending':
-                print(".", end="", flush=True)  # Show progress
+                if not shows_status:
+                    print(".", end="", flush=True)  # Show progress
                 # Refresh the animated QR frame so it doesn't go stale.
                 new_qr = poll_data.get('qr_code')
                 if new_qr and getattr(self.interaction_provider, 'supports_qr_refresh', False):
