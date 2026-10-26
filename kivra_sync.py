@@ -11,6 +11,7 @@ import tempfile
 from __version__ import __version__
 from kivra.auth import KivraAuth
 from kivra.api import KivraApiClient
+from kivra.company import fetch_company_mailboxes
 from kivra.receipts import ReceiptFetcher
 from kivra.letters import LetterFetcher
 from storage.filesystem import FileSystemStoreProvider
@@ -65,6 +66,27 @@ def fetch_documents(args, interaction_provider, document_store, temp_dir):
             letter_fetcher = LetterFetcher(api_client, document_store)
             letter_stats = letter_fetcher.fetch_letters(max_count=None if args.max_letters == 0 else args.max_letters)
             stats.update(letter_stats)
+            try:
+                company_stats, company_errors = fetch_company_mailboxes(
+                    api_client, document_store, args.ssn,
+                    max_count=None if args.max_letters == 0 else args.max_letters
+                )
+            except Exception as exc:
+                logging.error('Company mailbox discovery failed: %s', exc)
+                company_stats = {'letters_total': 0, 'letters_fetched': 0, 'letters_stored': 0}
+                company_errors = ['discovery']
+            for key in ('letters_total', 'letters_fetched', 'letters_stored'):
+                stats[key] += company_stats[key]
+
+            if company_errors:
+                logging.error('Company mailbox sync failed for %s mailbox(es)', len(company_errors))
+                if isinstance(interaction_provider, WebInteractionProvider):
+                    interaction_provider._send_sse_message({
+                        'status': 'error',
+                        'message': 'Company mailbox sync failed. Check terminal for details.',
+                        'stats': stats,
+                    })
+                return 1
         
         # Report completion
         interaction_provider.report_completion(stats)
