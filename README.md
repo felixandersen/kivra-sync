@@ -16,7 +16,7 @@ Use it responsibly and at your own discretion.
 
 - **Authentication**: Fetches and displays a QR code for authentication via BankID.
 - **Flexible Storage**: Store documents locally on your filesystem or integrate with Paperless-ngx for advanced document management
-- **Multiple Interaction Modes**: Run interactively in your terminal or set up a "headless" mode that listens for triggers and sends QR codes via a web page or ntfy.sh
+- **Multiple Interaction Modes**: Scan the BankID QR code right in your terminal, or set up a "headless" mode that listens for triggers and shows QR codes via a web page or ntfy.sh
 
 ## Quick Start
 
@@ -27,16 +27,35 @@ This will:
 
 ### Option 1: Using Docker (recommended)
 
+Build the image, then run it interactively. The BankID QR code is drawn directly in your terminal and refreshes until you scan it with the BankID app:
+
 ```bash
-# Edit docker-compose.example.yml to set your configuration
+docker build -t kivra-sync .
+docker run -it --rm -v "$(pwd)/data:/data" kivra-sync:latest YYYYMMDDXXXX --base-dir /data
+```
+
+Documents are saved to `./data` on your machine.
+
+- `-it` is required, since the QR code is shown in the terminal.
+- `--base-dir /data` makes the documents land in the mounted volume rather than inside the container.
+- Before login, the terminal must be at least 60 columns × 32 rows. A typical compact QR and its status line need about 54 columns × 29 rows; larger payloads may require more space, which the error message will report.
+
+### Option 2: Using Docker Compose (headless, web UI)
+
+For a long-running setup without an interactive terminal, use the `web` interaction provider and open the QR code in your browser:
+
+```bash
+# Edit docker-compose.yml to set your configuration,
 # especially "your-national-identification-number-here"
 # Then run:
 docker compose build && docker compose up
 ```
 
-Note: this will not work with the default `local` interaction provider since there is currently no way for the provider to show the QR code required for login. The above is configured to launch with the `web` interaction provider.
+Then navigate to `http://localhost:8080` to trigger a sync and scan the QR code.
 
-### Option 2: Using Python
+The supplied Compose setup has neither an interactive terminal for `terminal` nor a desktop image viewer for `local`, so it uses `web`. The `ntfy` provider is another option for headless runs.
+
+### Option 3: Using Python
 
 ```bash
 # Install system dependencies (Debian/Ubuntu)
@@ -49,7 +68,7 @@ pip install -r requirements.txt
 python kivra_sync.py YYYYMMDDXXXX
 ```
 
-### Option 3: Using Nix (flake)
+### Option 4: Using Nix (flake)
 
 If you have Nix with flakes enabled:
 
@@ -98,13 +117,17 @@ python kivra_sync.py YYYYMMDDXXXX --storage-provider paperless \
 
 Interaction providers handle user interaction during authentication and report completion statistics.
 
-#### Local Interaction (Default)
+#### Terminal Interaction (Default)
 
-Displays QR codes locally and reports to the console:
+Draws the BankID QR code directly in the terminal and refreshes it on every poll, so the code you scan is always current. Reports progress to the console:
 
 ```bash
-python kivra_sync.py YYYYMMDDXXXX --interaction-provider local
+python kivra_sync.py YYYYMMDDXXXX --interaction-provider terminal
 ```
+
+Uses Unicode half-block characters to fit two QR rows into each terminal line. Requires an interactive terminal (use `docker run -it` in Docker) with a font that supports these characters. Startup checks for at least 60 columns × 32 rows before authentication; the exact size is checked again when the QR payload arrives. A typical compact QR and its status line need about 54 columns × 29 rows, but larger payloads may require more. Windows console ANSI handling is initialized automatically. If output isn't a terminal, use the `web` or `ntfy` provider instead.
+
+When upgrading, cron, systemd, and Docker runs without `-it` must select `web` or `ntfy` explicitly because `terminal` is now the default. If the window is resized too small during authentication, QR updates pause until it is enlarged again.
 
 #### Web Interaction
 
@@ -128,6 +151,14 @@ To trigger the script in listening mode, send the trigger message to the ntfy to
 
 ```bash
 curl -d "run now" ntfy.sh/your-topic
+```
+
+#### Local Interaction (deprecated)
+
+Opens the QR code image in your system's image viewer. It only shows a single static frame, which BankID may reject as stale ("QR-koden är ogiltig" / "QR code is invalid", RFA17). This provider will be removed in a future release; use `terminal` instead.
+
+```bash
+python kivra_sync.py YYYYMMDDXXXX --interaction-provider local
 ```
 
 ### Fetch Options
@@ -172,7 +203,7 @@ python kivra_sync.py YYYYMMDDXXXX --max-receipts 0
 ### Interaction Options
 | Option | Description |
 |--------|-------------|
-| `--interaction-provider {local,ntfy,web}` | Interaction provider to use (default: local) |
+| `--interaction-provider {terminal,web,ntfy,local}` | Interaction provider to use (default: terminal; `local` is deprecated) |
 | `--ntfy-topic TOPIC` | ntfy topic to send notifications to (required for ntfy) |
 | `--ntfy-server URL` | ntfy server URL (default: https://ntfy.sh) |
 | `--ntfy-user USER` | ntfy username for authentication |
